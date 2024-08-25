@@ -1,4 +1,5 @@
-FROM eclipse-temurin:17-jre
+ARG DEBIAN_VERSION=12
+FROM java:17-jre-deb${DEBIAN_VERSION}
 
 LABEL org.opencontainers.image.url=https://github.com/SonarSource/docker-sonarqube
 
@@ -9,10 +10,11 @@ ENV LANG='en_US.UTF-8' \
 #
 # SonarQube setup
 #
+ARG CICD_UID=1000
+ARG CICD_GID=1000
 ARG SONARQUBE_VERSION=10.6.0.92116
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
-    JAVA_HOME='/opt/java/openjdk' \
     SONARQUBE_HOME=/opt/sonarqube \
     SONAR_VERSION="${SONARQUBE_VERSION}" \
     SQ_DATA_DIR="/opt/sonarqube/data" \
@@ -21,9 +23,15 @@ ENV DOCKER_RUNNING="true" \
     SQ_TEMP_DIR="/opt/sonarqube/temp"
 
 RUN set -eux; \
-    useradd --system --uid 1000 --gid 0 sonarqube; \
+    groupadd --gid ${CICD_GID} sonarqube; \
+    useradd --system --uid ${CICD_UID} --gid ${CICD_GID} sonarqube; \
     apt-get update; \
-    apt-get --no-install-recommends -y install gnupg unzip curl bash fonts-dejavu; \
+    apt-get --no-install-recommends -y install \
+        bash \
+        curl \
+        fonts-dejavu \
+        gnupg \
+        unzip; \
     echo "networkaddress.cache.ttl=5" >> "${JAVA_HOME}/conf/security/java.security"; \
     sed --in-place --expression="s?securerandom.source=file:/dev/random?securerandom.source=file:/dev/urandom?g" "${JAVA_HOME}/conf/security/java.security"; \
     # pub   2048R/D26468DE 2015-05-25
@@ -44,12 +52,17 @@ RUN set -eux; \
     rm sonarqube.zip*; \
     rm -rf ${SONARQUBE_HOME}/bin/*; \
     ln -s "${SONARQUBE_HOME}/lib/sonar-application-${SONARQUBE_VERSION}.jar" "${SONARQUBE_HOME}/lib/sonarqube.jar"; \
-    chmod -R 550 ${SONARQUBE_HOME}; \
-    chmod -R 770 "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
+    chown -R sonarqube ${SONARQUBE_HOME} "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
+    chgrp -R sonarqube ${SONARQUBE_HOME} "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     apt-get remove -y gnupg unzip; \
-    rm -rf /var/lib/apt/lists/*;
+    rm -rf /var/lib/apt/lists/*; \
+    apt-get clean;
 
-COPY entrypoint.sh ${SONARQUBE_HOME}/docker/
+VOLUME ["${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"]
+
+
+RUN sed -i "s/#sonar.web.context=.*/sonar.web.context=\/sonarqube/g" /opt/sonarqube/conf/sonar.properties ;\
+	sed -i "s/#sonar.log.maxFiles=.*/sonar.log.maxFiles=1/g" /opt/sonarqube/conf/sonar.properties ;
 
 WORKDIR ${SONARQUBE_HOME}
 EXPOSE 9000
@@ -57,4 +70,4 @@ EXPOSE 9000
 USER sonarqube
 STOPSIGNAL SIGINT
 
-ENTRYPOINT ["/opt/sonarqube/docker/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/java", "-jar", "lib/sonarqube.jar", "-Dsonar.log.console=true"]
