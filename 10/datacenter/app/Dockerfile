@@ -1,5 +1,10 @@
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-jammy
 
+LABEL io.k8s.description="SonarQube is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
+LABEL io.openshift.min-cpu=400m
+LABEL io.openshift.min-memory=2048M
+LABEL io.openshift.non-scalable=false
+LABEL io.openshift.tags=sonarqube,static-code-analysis,code-quality,clean-code
 LABEL org.opencontainers.image.url=https://github.com/SonarSource/docker-sonarqube
 
 ENV LANG='en_US.UTF-8' \
@@ -9,7 +14,7 @@ ENV LANG='en_US.UTF-8' \
 #
 # SonarQube setup
 #
-ARG SONARQUBE_VERSION=10.6.0.92116
+ARG SONARQUBE_VERSION=10.7.0.96327
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/CommercialDistribution/sonarqube-datacenter/sonarqube-datacenter-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
@@ -25,7 +30,13 @@ ENV DOCKER_RUNNING="true" \
 RUN set -eux; \
     useradd --system --uid 1000 --gid 0 sonarqube; \
     apt-get update; \
-    apt-get --no-install-recommends -y install gnupg unzip curl bash fonts-dejavu iproute2; \
+    apt-get --no-install-recommends -y install \
+        bash \
+        curl \
+        fonts-dejavu \
+        gnupg \
+        iproute2 \
+        unzip; \
     echo "networkaddress.cache.ttl=5" >> "${JAVA_HOME}/conf/security/java.security"; \
     sed --in-place --expression="s?securerandom.source=file:/dev/random?securerandom.source=file:/dev/urandom?g" "${JAVA_HOME}/conf/security/java.security"; \
     # pub   2048R/D26468DE 2015-05-25
@@ -50,6 +61,8 @@ RUN set -eux; \
     chmod -R 770 "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     apt-get remove -y gnupg unzip; \
     rm -rf /var/lib/apt/lists/*;
+
+VOLUME ["${SQ_DATA_DIR}", "${SQ_EXTENSIONS_DIR}", "${SQ_LOGS_DIR}", "${SQ_TEMP_DIR}"]
 
 COPY run.sh sonar.sh ${SONARQUBE_HOME}/docker/
 

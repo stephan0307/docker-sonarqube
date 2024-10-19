@@ -1,6 +1,11 @@
 ARG DEBIAN_VERSION=12
 FROM java:17-jre-deb${DEBIAN_VERSION}
 
+LABEL io.k8s.description="SonarQube is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
+LABEL io.openshift.min-cpu=400m
+LABEL io.openshift.min-memory=2048M
+LABEL io.openshift.non-scalable=true
+LABEL io.openshift.tags=sonarqube,static-code-analysis,code-quality,clean-code
 LABEL org.opencontainers.image.url=https://github.com/SonarSource/docker-sonarqube
 
 ENV LANG='en_US.UTF-8' \
@@ -12,7 +17,7 @@ ENV LANG='en_US.UTF-8' \
 #
 ARG CICD_UID=1000
 ARG CICD_GID=1000
-ARG SONARQUBE_VERSION=10.6.0.92116
+ARG SONARQUBE_VERSION=10.7.0.96327
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     SONARQUBE_HOME=/opt/sonarqube \
@@ -21,6 +26,9 @@ ENV DOCKER_RUNNING="true" \
     SQ_EXTENSIONS_DIR="/opt/sonarqube/extensions" \
     SQ_LOGS_DIR="/opt/sonarqube/logs" \
     SQ_TEMP_DIR="/opt/sonarqube/temp"
+
+# Separate stage to use variable expansion
+ENV ES_TMPDIR="${SQ_TEMP_DIR}"
 
 RUN set -eux; \
     groupadd --gid ${CICD_GID} sonarqube; \
@@ -58,7 +66,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*; \
     apt-get clean;
 
-VOLUME ["${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"]
+VOLUME ["${SQ_DATA_DIR}", "${SQ_EXTENSIONS_DIR}", "${SQ_LOGS_DIR}", "${SQ_TEMP_DIR}"]
 
 
 RUN sed -i "s/#sonar.web.context=.*/sonar.web.context=\/sonarqube/g" /opt/sonarqube/conf/sonar.properties ;\
