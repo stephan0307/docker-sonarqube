@@ -1,5 +1,4 @@
-ARG DEBIAN_VERSION=12
-FROM java:17-jre-deb${DEBIAN_VERSION}
+FROM eclipse-temurin:17-jre-jammy
 
 LABEL io.k8s.description="SonarQube is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
 LABEL io.openshift.min-cpu=400m
@@ -20,6 +19,7 @@ ARG CICD_GID=1000
 ARG SONARQUBE_VERSION=10.7.0.96327
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
+    JAVA_HOME='/opt/java/openjdk' \
     SONARQUBE_HOME=/opt/sonarqube \
     SONAR_VERSION="${SONARQUBE_VERSION}" \
     SQ_DATA_DIR="/opt/sonarqube/data" \
@@ -68,6 +68,7 @@ RUN set -eux; \
 
 VOLUME ["${SQ_DATA_DIR}", "${SQ_EXTENSIONS_DIR}", "${SQ_LOGS_DIR}", "${SQ_TEMP_DIR}"]
 
+COPY entrypoint.sh ${SONARQUBE_HOME}/docker/
 
 RUN sed -i "s/#sonar.web.context=.*/sonar.web.context=\/sonarqube/g" /opt/sonarqube/conf/sonar.properties ;\
 	sed -i "s/#sonar.log.maxFiles=.*/sonar.log.maxFiles=1/g" /opt/sonarqube/conf/sonar.properties ;
@@ -78,4 +79,4 @@ EXPOSE 9000
 USER sonarqube
 STOPSIGNAL SIGINT
 
-ENTRYPOINT ["/usr/bin/java", "-jar", "lib/sonarqube.jar", "-Dsonar.log.console=true"]
+ENTRYPOINT ["/opt/sonarqube/docker/entrypoint.sh"]
