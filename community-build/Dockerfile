@@ -1,4 +1,5 @@
-FROM eclipse-temurin:17-jre-jammy
+
+FROM eclipse-temurin:17-jre-noble
 
 LABEL io.k8s.description="SonarQube is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
 LABEL io.openshift.min-cpu=400m
@@ -16,7 +17,7 @@ ENV LANG='en_US.UTF-8' \
 #
 ARG CICD_UID=1000
 ARG CICD_GID=1000
-ARG SONARQUBE_VERSION=24.12.0.100206
+ARG SONARQUBE_VERSION=25.1.0.102122
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
