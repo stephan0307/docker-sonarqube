@@ -1,12 +1,12 @@
+FROM eclipse-temurin:21-jre-noble
 
-FROM eclipse-temurin:17-jre-noble
-
-LABEL io.k8s.description="SonarQube Community Build is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
+LABEL io.k8s.description="SonarQube Server is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
 LABEL io.openshift.min-cpu=400m
 LABEL io.openshift.min-memory=2048M
-LABEL io.openshift.non-scalable=true
+LABEL io.openshift.non-scalable=false
 LABEL io.openshift.tags=sonarqube,static-code-analysis,code-quality,clean-code
 LABEL org.opencontainers.image.url=https://github.com/SonarSource/docker-sonarqube
+LABEL com.googleapis.cloudmarketplace.product.service.name=services/sonarqube-dce
 
 ENV LANG='en_US.UTF-8' \
     LANGUAGE='en_US:en' \
@@ -15,10 +15,8 @@ ENV LANG='en_US.UTF-8' \
 #
 # SonarQube setup
 #
-ARG CICD_UID=1000
-ARG CICD_GID=1000
-ARG SONARQUBE_VERSION=25.2.0.102705
-ARG  SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
+ARG SONARQUBE_VERSION=2025.1.0.102418
+ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/CommercialDistribution/sonarqube-datacenter/sonarqube-datacenter-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
     SONARQUBE_HOME=/opt/sonarqube \
@@ -26,20 +24,20 @@ ENV DOCKER_RUNNING="true" \
     SQ_DATA_DIR="/opt/sonarqube/data" \
     SQ_EXTENSIONS_DIR="/opt/sonarqube/extensions" \
     SQ_LOGS_DIR="/opt/sonarqube/logs" \
-    SQ_TEMP_DIR="/opt/sonarqube/temp"
-
-# Separate stage to use variable expansion
-ENV ES_TMPDIR="${SQ_TEMP_DIR}"
+    SQ_TEMP_DIR="/opt/sonarqube/temp" \
+    SONAR_CLUSTER_NODE_TYPE="application" \
+    SONAR_CLUSTER_ENABLED="true"
 
 RUN set -eux; \
-    groupadd --gid ${CICD_GID} sonarqube; \
-    useradd --system --uid ${CICD_UID} --gid ${CICD_GID} sonarqube; \
+    deluser ubuntu; \
+    useradd --system --uid 1000 --gid 0 sonarqube; \
     apt-get update; \
     apt-get --no-install-recommends -y install \
         bash \
         curl \
         fonts-dejavu \
         gnupg \
+        iproute2 \
         unzip; \
     echo "networkaddress.cache.ttl=5" >> "${JAVA_HOME}/conf/security/java.security"; \
     sed --in-place --expression="s?securerandom.source=file:/dev/random?securerandom.source=file:/dev/urandom?g" "${JAVA_HOME}/conf/security/java.security"; \
@@ -61,23 +59,14 @@ RUN set -eux; \
     rm sonarqube.zip*; \
     rm -rf ${SONARQUBE_HOME}/bin/*; \
     ln -s "${SONARQUBE_HOME}/lib/sonar-application-${SONARQUBE_VERSION}.jar" "${SONARQUBE_HOME}/lib/sonarqube.jar"; \
-    chown -R sonarqube:sonarqube ${SONARQUBE_HOME}; \
-    chown -R sonarqube:sonarqube "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     chmod -R 550 ${SONARQUBE_HOME}; \
     chmod -R 770 "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     apt-get remove -y gnupg unzip; \
-    rm -rf /var/lib/apt/lists/*; \
-    apt-get clean;
+    rm -rf /var/lib/apt/lists/*;
 
 VOLUME ["${SQ_DATA_DIR}", "${SQ_EXTENSIONS_DIR}", "${SQ_LOGS_DIR}", "${SQ_TEMP_DIR}"]
 
-COPY entrypoint.sh ${SONARQUBE_HOME}/docker/
-
-RUN chown -R sonarqube:sonarqube ${SONARQUBE_HOME}/docker; \
-    chmod -R 550 ${SONARQUBE_HOME}/docker
-
-RUN sed -i "s/#sonar.web.context=.*/sonar.web.context=\/sonarqube/g" /opt/sonarqube/conf/sonar.properties ;\
-    sed -i "s/#sonar.log.maxFiles=.*/sonar.log.maxFiles=1/g" /opt/sonarqube/conf/sonar.properties ;
+COPY run.sh sonar.sh ${SONARQUBE_HOME}/docker/
 
 WORKDIR ${SONARQUBE_HOME}
 EXPOSE 9000
@@ -85,4 +74,5 @@ EXPOSE 9000
 USER sonarqube
 STOPSIGNAL SIGINT
 
-ENTRYPOINT ["/opt/sonarqube/docker/entrypoint.sh"]
+ENTRYPOINT ["/opt/sonarqube/docker/run.sh"]
+CMD ["/opt/sonarqube/docker/sonar.sh"]

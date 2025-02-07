@@ -1,6 +1,6 @@
 FROM eclipse-temurin:17-jre-noble
 
-LABEL io.k8s.description="SonarQube is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
+LABEL io.k8s.description="SonarQube Server is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
 LABEL io.openshift.min-cpu=400m
 LABEL io.openshift.min-memory=2048M
 LABEL io.openshift.non-scalable=true
@@ -14,7 +14,7 @@ ENV LANG='en_US.UTF-8' \
 #
 # SonarQube setup
 #
-ARG SONARQUBE_VERSION=10.8.1.101195
+ARG SONARQUBE_VERSION=2025.1.0.102418
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/CommercialDistribution/sonarqube-enterprise/sonarqube-enterprise-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
@@ -58,6 +58,8 @@ RUN set -eux; \
     rm sonarqube.zip*; \
     rm -rf ${SONARQUBE_HOME}/bin/*; \
     ln -s "${SONARQUBE_HOME}/lib/sonar-application-${SONARQUBE_VERSION}.jar" "${SONARQUBE_HOME}/lib/sonarqube.jar"; \
+    chown -R sonarqube:root ${SONARQUBE_HOME}; \
+    chown -R sonarqube:root "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     chmod -R 550 ${SONARQUBE_HOME}; \
     chmod -R 770 "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     apt-get remove -y gnupg unzip; \
@@ -65,7 +67,7 @@ RUN set -eux; \
 
 VOLUME ["${SQ_DATA_DIR}", "${SQ_EXTENSIONS_DIR}", "${SQ_LOGS_DIR}", "${SQ_TEMP_DIR}"]
 
-COPY entrypoint.sh ${SONARQUBE_HOME}/docker/
+COPY --chown=root:root --chmod=555 entrypoint.sh ${SONARQUBE_HOME}/docker/
 
 WORKDIR ${SONARQUBE_HOME}
 EXPOSE 9000

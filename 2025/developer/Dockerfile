@@ -1,7 +1,6 @@
-
 FROM eclipse-temurin:17-jre-noble
 
-LABEL io.k8s.description="SonarQube Community Build is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
+LABEL io.k8s.description="SonarQube Server is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
 LABEL io.openshift.min-cpu=400m
 LABEL io.openshift.min-memory=2048M
 LABEL io.openshift.non-scalable=true
@@ -15,10 +14,8 @@ ENV LANG='en_US.UTF-8' \
 #
 # SonarQube setup
 #
-ARG CICD_UID=1000
-ARG CICD_GID=1000
-ARG SONARQUBE_VERSION=25.2.0.102705
-ARG  SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
+ARG SONARQUBE_VERSION=2025.1.0.102418
+ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/CommercialDistribution/sonarqube-developer/sonarqube-developer-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
     SONARQUBE_HOME=/opt/sonarqube \
@@ -32,8 +29,8 @@ ENV DOCKER_RUNNING="true" \
 ENV ES_TMPDIR="${SQ_TEMP_DIR}"
 
 RUN set -eux; \
-    groupadd --gid ${CICD_GID} sonarqube; \
-    useradd --system --uid ${CICD_UID} --gid ${CICD_GID} sonarqube; \
+    deluser ubuntu; \
+    useradd --system --uid 1000 --gid 0 sonarqube; \
     apt-get update; \
     apt-get --no-install-recommends -y install \
         bash \
@@ -61,23 +58,16 @@ RUN set -eux; \
     rm sonarqube.zip*; \
     rm -rf ${SONARQUBE_HOME}/bin/*; \
     ln -s "${SONARQUBE_HOME}/lib/sonar-application-${SONARQUBE_VERSION}.jar" "${SONARQUBE_HOME}/lib/sonarqube.jar"; \
-    chown -R sonarqube:sonarqube ${SONARQUBE_HOME}; \
-    chown -R sonarqube:sonarqube "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
+    chown -R sonarqube:root ${SONARQUBE_HOME}; \
+    chown -R sonarqube:root "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     chmod -R 550 ${SONARQUBE_HOME}; \
     chmod -R 770 "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     apt-get remove -y gnupg unzip; \
-    rm -rf /var/lib/apt/lists/*; \
-    apt-get clean;
+    rm -rf /var/lib/apt/lists/*;
 
 VOLUME ["${SQ_DATA_DIR}", "${SQ_EXTENSIONS_DIR}", "${SQ_LOGS_DIR}", "${SQ_TEMP_DIR}"]
 
-COPY entrypoint.sh ${SONARQUBE_HOME}/docker/
-
-RUN chown -R sonarqube:sonarqube ${SONARQUBE_HOME}/docker; \
-    chmod -R 550 ${SONARQUBE_HOME}/docker
-
-RUN sed -i "s/#sonar.web.context=.*/sonar.web.context=\/sonarqube/g" /opt/sonarqube/conf/sonar.properties ;\
-    sed -i "s/#sonar.log.maxFiles=.*/sonar.log.maxFiles=1/g" /opt/sonarqube/conf/sonar.properties ;
+COPY --chown=root:root --chmod=555 entrypoint.sh ${SONARQUBE_HOME}/docker/
 
 WORKDIR ${SONARQUBE_HOME}
 EXPOSE 9000
