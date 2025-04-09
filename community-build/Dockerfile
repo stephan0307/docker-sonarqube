@@ -1,5 +1,4 @@
-
-FROM eclipse-temurin:17-jre-noble
+FROM eclipse-temurin:21-jre-noble
 
 LABEL io.k8s.description="SonarQube Community Build is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
 LABEL io.openshift.min-cpu=400m
@@ -17,7 +16,7 @@ ENV LANG='en_US.UTF-8' \
 #
 ARG CICD_UID=1000
 ARG CICD_GID=1000
-ARG SONARQUBE_VERSION=25.3.0.104237
+ARG SONARQUBE_VERSION=25.4.0.105899
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
