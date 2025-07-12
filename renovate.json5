@@ -1,0 +1,100 @@
+{
+    "hostRules": [
+      {
+        "matchHost": "https://api.github.com/repos/SonarSource/sonar-enterprise",
+        "token": "{{ secrets.GITHUB_TOKEN_SONAR_ENTERPRISE }}"
+      }
+    ],
+    "rebaseWhen": "behind-base-branch",
+    "baseBranches": [
+      "master",
+      "main",
+      "release/2025.1"
+    ],
+    "rollbackPrs": true,
+    "labels": ["docker-release"],
+    "assignees": [
+      "jCOTINEAU",
+      "carminevassallo",
+      "davividal"
+    ],
+    "automerge": false,
+    "includePaths": [
+      "commercial-editions/**",
+      "community-build/Dockerfile",
+      ".cirrus/tasks.yml"
+    ],
+    "enabledManagers": [
+      "custom.regex"
+    ],
+    "packageRules": [
+      {
+        "matchManagers": ["custom.regex"],
+        "groupName": "docker-sonarqube-server-releases",
+        "groupSlug": "docker-sonarqube-server-releases",
+        "matchDepNames": ["sonarqube-server"],
+        "labels": ["sonarqube-server"]
+      },
+      {
+        "matchManagers": ["custom.regex"],
+        "groupName": "docker-sonarqube-community-build-releases",
+        "groupSlug": "docker-sonarqube-community-build-releases",
+        "matchDepNames": ["sonarqube-community-build"],
+        "labels": ["sonarqube-community-build"]
+      },
+      {
+        "matchManagers": ["custom.regex"],
+        "matchBaseBranches": ["release/2025.1"],
+        "matchUpdateTypes": ["major","minor"],
+        "enabled": "false"
+      }
+    ],
+    "customManagers": [
+      {
+        "customType": "regex",
+        "managerFilePatterns": ["commercial-editions/**"],
+        "datasourceTemplate":"github-releases",
+        "depNameTemplate": "sonarqube-server",
+        "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)",
+        "extractVersionTemplate": "^sqs-(?<version>.*)$",
+        "packageNameTemplate": "SonarSource/sonar-enterprise",
+        "matchStrings": [
+          "ARG SONARQUBE_VERSION=(?<currentValue>.+)"
+        ]
+      },
+      {
+        "customType": "regex",
+        "managerFilePatterns": [".cirrus/tasks.yml"],
+        "datasourceTemplate":"github-releases",
+        "depNameTemplate": "sonarqube-server",
+        "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)",
+        "extractVersionTemplate": "^sqs-(?<version>\\d+\\.\\d+\\.\\d+)\\.\\d+$",
+        "packageNameTemplate": "SonarSource/sonar-enterprise",
+        "matchStrings": [
+          "CURRENT_VERSION: (?<currentValue>.+)"
+        ]
+      },
+      {
+        "customType": "regex",
+        "managerFilePatterns": ["community-build/Dockerfile"],
+        "datasourceTemplate":"github-releases",
+        "depNameTemplate": "sonarqube-community-build",
+        "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)",
+        "packageNameTemplate": "SonarSource/sonarqube",
+        "matchStrings": [
+          "ARG SONARQUBE_VERSION=(?<currentValue>.+)"
+        ]
+      },
+      {
+        "customType": "regex",
+        "managerFilePatterns": [".cirrus/tasks.yml"],
+        "datasourceTemplate":"github-releases",
+        "depNameTemplate": "sonarqube-community-build",
+        "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)\\.(?<build>\\d+)",
+        "packageNameTemplate": "SonarSource/sonarqube",
+        "matchStrings": [
+          "COMMUNITY_BUILD_VERSION: (?<currentValue>.+)"
+        ]
+      }
+    ]
+  }

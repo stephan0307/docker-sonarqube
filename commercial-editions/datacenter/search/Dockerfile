@@ -14,7 +14,7 @@ ENV LANG='en_US.UTF-8' \
 #
 # SonarQube setup
 #
-ARG SONARQUBE_VERSION=2025.1.2.108896
+ARG SONARQUBE_VERSION=2025.3.1.109879
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/CommercialDistribution/sonarqube-datacenter/sonarqube-datacenter-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
@@ -24,8 +24,11 @@ ENV DOCKER_RUNNING="true" \
     SQ_EXTENSIONS_DIR="/opt/sonarqube/extensions" \
     SQ_LOGS_DIR="/opt/sonarqube/logs" \
     SQ_TEMP_DIR="/opt/sonarqube/temp" \
-    SONAR_CLUSTER_NODE_TYPE="application" \
+    SONAR_CLUSTER_NODE_TYPE="search" \
     SONAR_CLUSTER_ENABLED="true"
+
+# Separate stage to use variable expansion
+ENV ES_TMPDIR="${SQ_TEMP_DIR}"
 
 RUN set -eux; \
     deluser ubuntu; \
@@ -58,14 +61,16 @@ RUN set -eux; \
     rm sonarqube.zip*; \
     rm -rf ${SONARQUBE_HOME}/bin/*; \
     ln -s "${SONARQUBE_HOME}/lib/sonar-application-${SONARQUBE_VERSION}.jar" "${SONARQUBE_HOME}/lib/sonarqube.jar"; \
+    chown -R sonarqube:root ${SONARQUBE_HOME}; \
+    chown -R sonarqube:root "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
     chmod -R 550 ${SONARQUBE_HOME}; \
     chmod -R 770 "${SQ_DATA_DIR}" "${SQ_EXTENSIONS_DIR}" "${SQ_LOGS_DIR}" "${SQ_TEMP_DIR}"; \
-    apt-get remove -y gnupg unzip; \
+    apt-get remove -y gnupg unzip curl; \
     rm -rf /var/lib/apt/lists/*;
 
 VOLUME ["${SQ_DATA_DIR}", "${SQ_EXTENSIONS_DIR}", "${SQ_LOGS_DIR}", "${SQ_TEMP_DIR}"]
 
-COPY run.sh sonar.sh ${SONARQUBE_HOME}/docker/
+COPY --chown=root:root --chmod=555 run.sh sonar.sh ${SONARQUBE_HOME}/docker/
 
 WORKDIR ${SONARQUBE_HOME}
 EXPOSE 9000
