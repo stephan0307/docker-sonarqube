@@ -1,5 +1,4 @@
-
-FROM eclipse-temurin:21-jre-noble
+FROM eclipse-temurin:21-jdk-noble
 
 LABEL io.k8s.description="SonarQube Community Build is a self-managed, automatic code review tool that systematically helps you deliver Clean Code."
 LABEL io.openshift.min-cpu=400m
@@ -17,7 +16,7 @@ ENV LANG='en_US.UTF-8' \
 #
 ARG CICD_UID=1000
 ARG CICD_GID=1000
-ARG SONARQUBE_VERSION=25.12.0.117093
+ARG SONARQUBE_VERSION=26.2.0.119303
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \
@@ -52,8 +51,8 @@ RUN set -eux; \
     done; \
     mkdir --parents /opt; \
     cd /opt; \
-    curl --fail --location --output sonarqube.zip --silent --show-error "${SONARQUBE_ZIP_URL}"; \
-    curl --fail --location --output sonarqube.zip.asc --silent --show-error "${SONARQUBE_ZIP_URL}.asc"; \
+    curl --proto "=https" --fail --output sonarqube.zip --silent --show-error "${SONARQUBE_ZIP_URL}"; \
+    curl --proto "=https" --fail --output sonarqube.zip.asc --silent --show-error "${SONARQUBE_ZIP_URL}.asc"; \
     gpg --batch --verify sonarqube.zip.asc sonarqube.zip; \
     unzip -q sonarqube.zip; \
     mv "sonarqube-${SONARQUBE_VERSION}" sonarqube; \
