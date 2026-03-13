@@ -16,7 +16,7 @@ ENV LANG='en_US.UTF-8' \
 #
 ARG CICD_UID=1000
 ARG CICD_GID=1000
-ARG SONARQUBE_VERSION=26.2.0.119303
+ARG SONARQUBE_VERSION=26.3.0.120487
 ARG SONARQUBE_ZIP_URL=https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${SONARQUBE_VERSION}.zip
 ENV DOCKER_RUNNING="true" \
     JAVA_HOME='/opt/java/openjdk' \

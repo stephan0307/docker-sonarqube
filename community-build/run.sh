@@ -1,1 +1,1 @@
-docker run -p 9900:9000 -e SONAR_JDBC_USERNAME=sonarqube -e SONAR_JDBC_PASSWORD=${SONAR_JDBC_PASSWORD} -e SONAR_JDBC_URL="jdbc:postgresql://nas-paul/sonarqube" --name sonarqube sonarqube:26.2.0.119303
+docker run -p 9900:9000 -e SONAR_JDBC_USERNAME=sonarqube -e SONAR_JDBC_PASSWORD=${SONAR_JDBC_PASSWORD} -e SONAR_JDBC_URL="jdbc:postgresql://nas-paul/sonarqube" --name sonarqube sonarqube:26.3.0.120487
