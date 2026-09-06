@@ -3,7 +3,37 @@
 set -euo pipefail
 
 HOSTNAME=$(hostname)
-IP=$(ip -4 address show scope global | grep inet | awk '{ print $2 }' | head -n 1 | cut -d \/ -f 1)
+
+log() { printf '[run.sh] %s\n' "$*" >&2; }
+
+discover_ip() {
+    if [[ "${1}" == "4" ]]; then
+        # Skip 169.254.0.0/16: link-local per RFC 3927 but promoted to scope global
+        # by some CNIs (e.g. AWS VPC CNI on IPv6-only EKS for IPv4 egress interop).
+        ip -4 address show scope global | grep inet | awk '{ print $2 }' | cut -d \/ -f 1 | grep -v '^169\.254\.' | head -n 1 || true
+    else
+        ip -6 address show scope global | grep inet6 | awk '{ print $2 }' | head -n 1 | cut -d \/ -f 1 || true
+    fi
+}
+
+# Resolve this node's cluster address: prefer the explicit SONAR_CLUSTER_NODE_HOST, else autodiscover
+# a global-scope address (IPv4 then IPv6).
+resolve_node_ip() {
+    if [[ -n "${SONAR_CLUSTER_NODE_HOST:-}" ]]; then
+        log "Cluster node host set via SONAR_CLUSTER_NODE_HOST=${SONAR_CLUSTER_NODE_HOST}"
+        printf '%s' "${SONAR_CLUSTER_NODE_HOST}"
+        return
+    fi
+
+    log "SONAR_CLUSTER_NODE_HOST not set; autodiscovering node address."
+    local discovered
+    discovered=$(discover_ip 4)
+    [[ -z "${discovered}" ]] && discovered=$(discover_ip 6)
+    log "Autodiscovered cluster node IP: ${discovered:-<none found>}"
+    printf '%s' "${discovered}"
+}
+
+IP=$(resolve_node_ip)
 
 declare -a sq_opts=()
 set_prop() {

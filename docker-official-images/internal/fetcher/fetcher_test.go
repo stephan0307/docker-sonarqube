@@ -9,17 +9,22 @@ import (
 // testGitFetcherFetch tests the GitFetcher's ability to fetch file content
 // from the current working directory's Git repository.
 func TestGitFetcherFetch(t *testing.T) {
-	// Define the exact commit SHA and content from your repository
 	const testCommitSHA = "08c53884fb331f184f41b07cb502160ca40ea426"
 	const testFilePath = "NOTICE.txt"
-	const expectedContent = `docker-sonarqube
+	const expectedContentAtPinnedCommit = `docker-sonarqube
 Copyright (C) 2015-2025 SonarSource Sàrl
 mailto:info AT sonarsource DOT com
 
 This product includes software developed at
 SonarSource (http://www.sonarsource.com/).
 `
+	const expectedContent = `docker-sonarqube
+Copyright (C) SonarSource Sàrl
+mailto:info AT sonarsource DOT com
 
+This product includes software developed at
+SonarSource (http://www.sonarsource.com/).
+`
 	gitFetcher := fetcher.NewGitFetcher() // No arguments, assumes current directory is repo root
 
 	tests := []struct {
@@ -33,7 +38,7 @@ SonarSource (http://www.sonarsource.com/).
 			name:           "Fetch existing file by specific commit SHA",
 			branchOrCommit: testCommitSHA,
 			relativePath:   testFilePath,
-			wantContent:    expectedContent,
+			wantContent:    expectedContentAtPinnedCommit,
 			wantErr:        false,
 		},
 		{

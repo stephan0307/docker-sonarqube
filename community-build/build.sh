@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build  --build-arg CICD_UID=994 --build-arg CICD_GID=990 --rm --tag sonarqube:26.5.0.122743 .
+docker build  --build-arg CICD_UID=994 --build-arg CICD_GID=990 --rm --tag sonarqube:26.9.0.129388 .
